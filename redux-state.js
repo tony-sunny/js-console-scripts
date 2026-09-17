@@ -29,14 +29,13 @@ const getReduxState = () => {
     return docs;
   };
 
-  const stores = new Map(); // store -> frame URL (Map also dedupes)
+  const stores = new Map(); // store -> frame URL
   let rootCount = 0;
 
   for (const doc of collectDocuments(document)) {
-    // doc itself covers apps that hydrate the whole page (Next.js App Router, Remix)
+    // doc itself covers apps that hydrate the whole page
     for (const node of [doc, ...doc.querySelectorAll("*")]) {
       const key = Object.keys(node).find((k) => k.startsWith(CONTAINER_PREFIX));
-      // value is null after root.unmount(), hence the optional chaining
       const rootFiber = key && node[key]?.stateNode?.current;
       if (!rootFiber) continue;
       rootCount++;
