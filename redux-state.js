@@ -1,38 +1,39 @@
 const getReduxState = () => {
-  let reactRoots = Array.from(document.querySelectorAll("*")).filter((el) =>
-    Object.keys(el).find((key) => key.startsWith("__reactContainer")),
-  );
-  if (reactRoots.length === 0) {
-    console.warn("React root not found");
-    return;
-  }
-  const reduxStores = reactRoots.reduce((stores, root) => {
-    const reactContainerKey = Object.keys(root).find((key) =>
-      key.startsWith("__reactContainer"),
-    );
-    const reactContainer = root[reactContainerKey];
-    let props = reactContainer?.stateNode?.current?.child?.pendingProps;
-    let reduxStore;
-    let counter = 0;
-    while (props) {
-      counter++;
-      reduxStore = props?.store;
-      if (typeof reduxStore?.getState === "function") {
-        break;
+  const isStore = (s) =>
+    !!s &&
+    typeof s.getState === "function" &&
+    typeof s.dispatch === "function" &&
+    typeof s.subscribe === "function";
+
+  const stores = new Set();
+
+  for (const el of document.querySelectorAll("*")) {
+    const key = Object.keys(el).find((k) => k.startsWith("__reactContainer$"));
+    if (!key) continue;
+
+    // stateNode is the FiberRoot; .current is the committed HostRoot fiber
+    const rootFiber = el[key]?.stateNode?.current;
+    const stack = rootFiber ? [rootFiber] : [];
+
+    while (stack.length) {
+      const fiber = stack.pop();
+      const props = fiber.memoizedProps;
+      // <Provider store={...}> or the ReactReduxContext.Provider value it renders
+      for (const candidate of [props?.store, props?.value?.store]) {
+        if (isStore(candidate)) stores.add(candidate);
       }
-      props = props?.children?.props;
+      if (fiber.sibling) stack.push(fiber.sibling);
+      if (fiber.child) stack.push(fiber.child);
     }
-    if (reduxStore) {
-      stores.push(reduxStore);
-    }
-    return stores;
-  }, []);
-  if (reduxStores.length === 0) {
+  }
+
+  if (stores.size === 0) {
     console.warn("Redux store not found");
     return;
   }
+
   return Object.fromEntries(
-    reduxStores.map((s, idx) => [`Store${idx + 1}`, s.getState()]),
+    [...stores].map((s, i) => [`Store${i + 1}`, s.getState()]),
   );
 };
 
