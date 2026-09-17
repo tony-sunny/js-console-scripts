@@ -7,7 +7,7 @@ const getReduxState = () => {
     typeof s.dispatch === "function" &&
     typeof s.subscribe === "function";
 
-  // Immutable.js state (e.g. Mastodon) -> plain JS; plain objects pass through
+  // Immutable.js state -> plain JS; plain objects pass through
   const toPlain = (s) => (typeof s?.toJS === "function" ? s.toJS() : s);
 
   // Collect this document plus all reachable same-origin iframe documents
